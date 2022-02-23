@@ -113,7 +113,7 @@ def print_gpu_info( cuda_device_id ):
 
 def output_attr(data, list_params, image_start, image_end):
     import types
-    from sp_utilities import get_arb_params
+    from sphire.libpy.sp_utilities import get_arb_params
 
     params2d = {}
     TransType = type(Transform())
@@ -154,7 +154,7 @@ def output_attr(data, list_params, image_start, image_end):
 
 def write_attr(filename,nvalues, params_attr,image_start, image_end, myid, nproc, comm):
     import types, mpi
-    from sp_utilities import set_arb_params, write_header, write_headers
+    from sphire.libpy.sp_utilities import set_arb_params, write_header, write_headers
     
     RangePush("assign params")
     TransType = type(Transform())
@@ -211,7 +211,7 @@ def write_attr(filename,nvalues, params_attr,image_start, image_end, myid, nproc
 
 def send_EMData_w_ID(img, dst, tag, comm=-1):
     from mpi import mpi_send, MPI_INT, MPI_FLOAT, MPI_COMM_WORLD
-    from sp_utilities import get_image_data
+    from sphire.libpy.sp_utilities import get_image_data
 
     if comm==-1:
         comm = MPI_COMM_WORLD
@@ -286,19 +286,19 @@ def mref_ali2d_gpu(
     user_func_name="ref_ali2d", rand_seed= 1000, number_of_proc = 1, myid = 0, main_node = 0, mpi_comm = None, 
     mpi_gpu_proc=False, gpu_class_limit=0, cuda_device_occ=0.9):
 
-    from sp_utilities      import   model_circle, combine_params2, inverse_transform2, drop_image, get_image, get_im
-    from sp_utilities      import   reduce_EMData_to_root, bcast_EMData_to_all, bcast_number_to_all
-    from sp_utilities      import   send_attr_dict
-    from sp_utilities        import   center_2D
-    from sp_statistics     import   fsc_mask
-    from sp_alignment      import   Numrinit, ringwe, search_range
-    from sp_fundamentals   import   rot_shift2D, fshift
-    from sp_utilities      import   get_params2D, set_params2D
+    from sphire.libpy.sp_utilities      import   model_circle, combine_params2, inverse_transform2, drop_image, get_image, get_im
+    from sphire.libpy.sp_utilities      import   reduce_EMData_to_root, bcast_EMData_to_all, bcast_number_to_all
+    from sphire.libpy.sp_utilities      import   send_attr_dict
+    from sphire.libpy.sp_utilities        import   center_2D
+    from sphire.libpy.sp_statistics     import   fsc_mask
+    from sphire.libpy.sp_alignment      import   Numrinit, ringwe, search_range
+    from sphire.libpy.sp_fundamentals   import   rot_shift2D, fshift
+    from sphire.libpy.sp_utilities      import   get_params2D, set_params2D
     from random         import   seed, randint
-    from sp_morphology     import   ctf_2
-    from sp_filter         import   filt_btwl, filt_params
+    from sphire.libpy.sp_morphology     import   ctf_2
+    from filter         import   filt_btwl, filt_params
     from numpy          import   reshape, shape
-    from sp_utilities      import   print_msg, print_begin_msg, print_end_msg
+    from sphire.libpy.sp_utilities      import   print_msg, print_begin_msg, print_end_msg
     import os
     import alignment
     import fundamentals
@@ -306,19 +306,19 @@ def mref_ali2d_gpu(
     import mpi
     import time
     import utilities as util
-    from sp_applications   import MPI_start_end
+    from sphire.libpy.sp_applications   import MPI_start_end
     from mpi       import mpi_comm_size, mpi_comm_rank, MPI_COMM_WORLD
     from mpi       import mpi_reduce, mpi_bcast, mpi_barrier, mpi_recv, mpi_send
     from mpi       import MPI_SUM, MPI_FLOAT, MPI_INT
 
-    import sp_user_functions
-    from sp_applications   import MPI_start_end
+    import sphire.libpy.sp_user_functions as sp_user_functions
+    from sphire.libpy.sp_applications   import MPI_start_end
     user_func = sp_user_functions.factory[user_func_name]
 
     # sanity check: gpu procs sound off
     if not mpi_gpu_proc: return []
 
-    import sp_global_def
+    import sphire.libpy.sp_global_def as sp_global_def
     if myid == main_node:
         sp_global_def.LOGFILE =  os.path.join(outdir, sp_global_def.LOGFILE)
         print_begin_msg("mref_ali2d_GPU")
@@ -479,7 +479,7 @@ def mref_ali2d_gpu(
         cu_module.pre_align_fetch(
             get_c_ptr_array(data),
             ctypes.c_uint(len(data)), 
-            ctypes.c_char_p("sbj_batch") )
+            ctypes.c_char_p(b"sbj_batch") )
             
     #----------------------------------[ alignment ]
 
@@ -499,7 +499,7 @@ def mref_ali2d_gpu(
         cu_module.pre_align_fetch(
             get_c_ptr_array([tmp[0] for tmp in refi2]),
             ctypes.c_int(numref), 
-            ctypes.c_char_p("ref_batch"))
+            ctypes.c_char_p(b"ref_batch"))
         
         # backup last iteration's alignment parameters
         RangePush("Iteration's alignment parameters")
@@ -526,7 +526,7 @@ def mref_ali2d_gpu(
                  cu_module.pre_align_fetch(
                  get_c_ptr_array([tmp[0] for tmp in refi2]),
                  ctypes.c_int(numref), 
-                 ctypes.c_char_p("ref_batch"))
+                 ctypes.c_char_p(b"ref_batch"))
             
             if( gpu_batch_count > 1 ):
                 
@@ -537,7 +537,7 @@ def mref_ali2d_gpu(
                 cu_module.pre_align_fetch(
                     get_c_ptr_array( data[gpu_batch_start:gpu_batch_end] ),
                     ctypes.c_int( gpu_batch_end-gpu_batch_start ),
-                    ctypes.c_char_p("sbj_batch") )
+                    ctypes.c_char_p(b"sbj_batch") )
             else:
                 gpu_batch_start = 0
                 gpu_batch_end   = len(data)
@@ -591,12 +591,12 @@ def mref_ali2d_gpu(
             if myid == main_node:
                 for n in range(number_of_proc):
                     if n != main_node:
-                        import sp_global_def
+                        import sphire.libpy.sp_global_def as sp_global_def
                         ln =  mpi_recv(1, MPI_INT, n, sp_global_def.SPARX_MPI_TAG_UNIVERSAL, mpi_comm)
                         lis = mpi_recv(ln[0], MPI_INT, n, sp_global_def.SPARX_MPI_TAG_UNIVERSAL, mpi_comm)
                         for l in range(ln[0]): assign[j].append(int(lis[l]))
             else:
-                import sp_global_def
+                import sphire.libpy.sp_global_def as sp_global_def
                 mpi_send(len(assign[j]), 1, MPI_INT, main_node, sp_global_def.SPARX_MPI_TAG_UNIVERSAL, mpi_comm)
                 mpi_send(assign[j], len(assign[j]), MPI_INT, main_node, sp_global_def.SPARX_MPI_TAG_UNIVERSAL, mpi_comm)
         
@@ -615,7 +615,7 @@ def mref_ali2d_gpu(
 
                 else:
                     #frsc = fsc_mask(refi[j][0], refi[j][1], mask, 1.0, os.path.join(outdir,"drm%03d%04d"%(Iter, j)))
-                    from sp_statistics import fsc
+                    from sphire.libpy.sp_statistics import fsc
                     frsc = fsc(refi[j][0], refi[j][1], 1.0, os.path.join(outdir,"drm%03d%04d.txt"%(Iter,j)))
                     Util.add_img( refi[j][0], refi[j][1] )
                     Util.mul_scalar( refi[j][0], 1.0/float(refi[j][2]) )
@@ -698,23 +698,23 @@ def mref_ali2d_gpu(
 def mref_ali2d_MPI(stack, refim, outdir, maskfile = None, ir=1, ou=-1, rs=1, xrng=0, yrng=0, step=1, center=1, maxit=10, CTF=False, snr=1.0, user_func_name="ref_ali2d", rand_seed=1000):
     # 2D multi-reference alignment using rotational ccf in polar coordinates and quadratic interpolation
 
-    from sp_utilities      import   model_circle, combine_params2, inverse_transform2, drop_image, get_image, get_im
-    from sp_utilities      import   reduce_EMData_to_root, bcast_EMData_to_all, bcast_number_to_all
-    from sp_utilities      import   send_attr_dict
-    from sp_utilities        import   center_2D
-    from sp_statistics     import   fsc_mask
-    from sp_alignment      import   Numrinit, ringwe, search_range
-    from sp_fundamentals   import   rot_shift2D, fshift
-    from sp_utilities      import   get_params2D, set_params2D
+    from sphire.libpy.sp_utilities      import   model_circle, combine_params2, inverse_transform2, drop_image, get_image, get_im
+    from sphire.libpy.sp_utilities      import   reduce_EMData_to_root, bcast_EMData_to_all, bcast_number_to_all
+    from sphire.libpy.sp_utilities      import   send_attr_dict
+    from sphire.libpy.sp_utilities        import   center_2D
+    from sphire.libpy.sp_statistics     import   fsc_mask
+    from sphire.libpy.sp_alignment      import   Numrinit, ringwe, search_range
+    from sphire.libpy.sp_fundamentals   import   rot_shift2D, fshift
+    from sphire.libpy.sp_utilities      import   get_params2D, set_params2D
     from random         import   seed, randint
-    from sp_morphology     import   ctf_2
-    from sp_filter         import   filt_btwl, filt_params
+    from sphire.libpy.sp_morphology     import   ctf_2
+    from filter         import   filt_btwl, filt_params
     from numpy          import   reshape, shape
-    from sp_utilities      import   print_msg, print_begin_msg, print_end_msg
+    from sphire.libpy.sp_utilities      import   print_msg, print_begin_msg, print_end_msg
     import os
     import sys
     import shutil
-    from sp_applications   import MPI_start_end
+    from sphire.libpy.sp_applications   import MPI_start_end
     from mpi       import mpi_comm_size, mpi_comm_rank, MPI_COMM_WORLD
     from mpi       import mpi_reduce, mpi_bcast, mpi_barrier, mpi_recv, mpi_send
     from mpi       import MPI_SUM, MPI_FLOAT, MPI_INT
@@ -729,7 +729,7 @@ def mref_ali2d_MPI(stack, refim, outdir, maskfile = None, ir=1, ou=-1, rs=1, xrn
     if os.path.exists(outdir):  ERROR('Output directory exists, please change the name and restart the program', "mref_ali2d_MPI ", 1, myid)
     mpi_barrier(MPI_COMM_WORLD)
 
-    import sp_global_def
+    import sphire.libpy.sp_global_def as sp_global_def
     if myid == main_node:
         os.mkdir(outdir)
         sp_global_def.LOGFILE =  os.path.join(outdir, sp_global_def.LOGFILE)
@@ -774,7 +774,7 @@ def mref_ali2d_MPI(stack, refim, outdir, maskfile = None, ir=1, ou=-1, rs=1, xrn
         print_msg("Signal-to-Noise Ratio       : %f\n"%(snr))
         print_msg("Random seed                 : %i\n\n"%(rand_seed))    
         print_msg("User function               : %s\n"%(user_func_name))
-    import sp_user_functions
+    import sphire.libpy.sp_user_functions as sp_user_functions
     user_func = sp_user_functions.factory[user_func_name]
 
     if maskfile:
@@ -876,12 +876,12 @@ def mref_ali2d_MPI(stack, refim, outdir, maskfile = None, ir=1, ou=-1, rs=1, xrn
             if myid == main_node:
                 for n in range(number_of_proc):
                     if n != main_node:
-                        import sp_global_def
+                        import sphire.libpy.sp_global_def as sp_global_def
                         ln =  mpi_recv(1, MPI_INT, n, sp_global_def.SPARX_MPI_TAG_UNIVERSAL, MPI_COMM_WORLD)
                         lis = mpi_recv(ln[0], MPI_INT, n, sp_global_def.SPARX_MPI_TAG_UNIVERSAL, MPI_COMM_WORLD)
                         for l in range(ln[0]): assign[j].append(int(lis[l]))
             else:
-                import sp_global_def
+                import sphire.libpy.sp_global_def as sp_global_def
                 mpi_send(len(assign[j]), 1, MPI_INT, main_node, sp_global_def.SPARX_MPI_TAG_UNIVERSAL, MPI_COMM_WORLD)
                 mpi_send(assign[j], len(assign[j]), MPI_INT, main_node, sp_global_def.SPARX_MPI_TAG_UNIVERSAL, MPI_COMM_WORLD)
         
@@ -900,7 +900,7 @@ def mref_ali2d_MPI(stack, refim, outdir, maskfile = None, ir=1, ou=-1, rs=1, xrn
                     #print 'ERROR', j
                 else:
                     #frsc = fsc_mask(refi[j][0], refi[j][1], mask, 1.0, os.path.join(outdir,"drm%03d%04d"%(Iter, j)))
-                    from sp_statistics import fsc
+                    from sphire.libpy.sp_statistics import fsc
                     frsc = fsc(refi[j][0], refi[j][1], 1.0, os.path.join(outdir,"drm%03d%04d.txt"%(Iter,j)))
                     Util.add_img( refi[j][0], refi[j][1] )
                     Util.mul_scalar( refi[j][0], 1.0/float(refi[j][2]) )
@@ -953,12 +953,12 @@ def mref_ali2d_MPI(stack, refim, outdir, maskfile = None, ir=1, ou=-1, rs=1, xrn
         for im in range(len(data)): data[im].set_attr('ctf_applied', 0)
     par_str = ['xform.align2d', 'assign', 'ID']
     if myid == main_node:
-        from sp_utilities import file_type
+        from sphire.libpy.sp_utilities import file_type
         if(file_type(stack) == "bdb"):
-            from sp_utilities import recv_attr_dict_bdb
+            from sphire.libpy.sp_utilities import recv_attr_dict_bdb
             recv_attr_dict_bdb(main_node, stack, data, par_str, image_start, image_end, number_of_proc)
         else:
-            from sp_utilities import recv_attr_dict
+            from sphire.libpy.sp_utilities import recv_attr_dict
             recv_attr_dict(main_node, stack, data, par_str, image_start, image_end, number_of_proc)
     else:           send_attr_dict(main_node, data, par_str, image_start, image_end)
     if myid == main_node:
@@ -993,16 +993,16 @@ def mref_ali2d(stack, refim, outdir, maskfile=None, ir=1, ou=-1, rs=1, xrng=0, y
         mref_ali2d_MPI(stack, refim, outdir, maskfile, ir, ou, rs, xrng, yrng, step, center, maxit, CTF, snr, user_func_name, rand_seed)
         return
 
-    from sp_utilities      import   model_circle, combine_params2, inverse_transform2, drop_image, get_image
-    from sp_utilities        import   center_2D, get_im, get_params2D, set_params2D
-    from sp_statistics     import   fsc
-    from sp_alignment      import   Numrinit, ringwe, fine_2D_refinement, search_range
-    from sp_fundamentals   import   rot_shift2D, fshift
+    from sphire.libpy.sp_utilities      import   model_circle, combine_params2, inverse_transform2, drop_image, get_image
+    from sphire.libpy.sp_utilities        import   center_2D, get_im, get_params2D, set_params2D
+    from sphire.libpy.sp_statistics     import   fsc
+    from sphire.libpy.sp_alignment      import   Numrinit, ringwe, fine_2D_refinement, search_range
+    from sphire.libpy.sp_fundamentals   import   rot_shift2D, fshift
     from random         import   seed, randint
     import os
     import sys
     
-    from sp_utilities      import   print_begin_msg, print_end_msg, print_msg
+    from sphire.libpy.sp_utilities      import   print_begin_msg, print_end_msg, print_msg
     import shutil
 
 
@@ -1010,7 +1010,7 @@ def mref_ali2d(stack, refim, outdir, maskfile=None, ir=1, ou=-1, rs=1, xrng=0, y
     # create the output directory, if it does not exist
     if os.path.exists(outdir):  shutil.rmtree(outdir) #ERROR('Output directory exists, please change the name and restart the program', "mref_ali2d", 1)
     os.mkdir(outdir)
-    import sp_global_def
+    import sphire.libpy.sp_global_def as sp_global_def
     sp_global_def.LOGFILE =  os.path.join(outdir, sp_global_def.LOGFILE)
     
     first_ring=int(ir); last_ring=int(ou); rstep=int(rs); max_iter=int(maxit)
@@ -1042,7 +1042,7 @@ def mref_ali2d(stack, refim, outdir, maskfile=None, ir=1, ou=-1, rs=1, xrng=0, y
     print_msg("User function               : %s\n"%(user_func_name))
     output = sys.stdout
 
-    import sp_user_functions
+    import sphire.libpy.sp_user_functions as sp_user_functions
     user_func = sp_user_functions.factory[user_func_name]
 
     if maskfile:
@@ -1200,7 +1200,7 @@ def mref_ali2d(stack, refim, outdir, maskfile=None, ir=1, ou=-1, rs=1, xrng=0, y
             
     newrefim = os.path.join(outdir,"multi_ref.hdf")
     for j in range(numref):  refi[j][0].write_image(newrefim, j)
-    from sp_utilities import write_headers
+    from sphire.libpy.sp_utilities import write_headers
     write_headers(stack, data, list(range(nima)))        
     print_end_msg("mref_ali2d")
 

@@ -148,7 +148,7 @@ def ali2d_base_gpu_isac_CLEAN(
     import math
     import time
     import alignment
-    import statistics
+    import sphire.libpy.sp_statistics as statistics
     import fundamentals
     import utilities as util
 
@@ -156,7 +156,7 @@ def ali2d_base_gpu_isac_CLEAN(
     from pixel_error import pixel_error_2D
 
     import user_functions
-    from sp_applications   import MPI_start_end
+    from sphire.libpy.sp_applications   import MPI_start_end
     user_func = user_functions.factory[user_func_name]
 
     # sanity check: gpu procs sound off
@@ -301,7 +301,7 @@ def ali2d_base_gpu_isac_CLEAN(
         cu_module.pre_align_fetch(
             get_c_ptr_array(data),
             ctypes.c_uint(len(data)), 
-            ctypes.c_char_p("sbj_batch") )
+            ctypes.c_char_p(b"sbj_batch") )
 
     #----------------------------------[ alignment ]
 
@@ -400,7 +400,7 @@ def ali2d_base_gpu_isac_CLEAN(
         cu_module.pre_align_fetch(
             get_c_ptr_array([tavg]),
             ctypes.c_int(1),
-            ctypes.c_char_p("ref_batch") )  # NOTE: happens for each shift change
+            ctypes.c_char_p(b"ref_batch") )  # NOTE: happens for each shift change
         
         # FOR gpu_batch_i DO ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ >
         
@@ -417,7 +417,7 @@ def ali2d_base_gpu_isac_CLEAN(
                 cu_module.pre_align_fetch(
                     get_c_ptr_array( data[gpu_batch_start:gpu_batch_end] ),
                     ctypes.c_int( gpu_batch_end-gpu_batch_start ),
-                    ctypes.c_char_p("sbj_batch") )
+                    ctypes.c_char_p(b"sbj_batch") )
             else:
                 gpu_batch_start = 0
                 gpu_batch_end   = len(data)
@@ -517,26 +517,26 @@ def ali2d_base(stack, outdir, maskfile=None, ir=1, ou=-1, rs=1, xr="4 2 1 1", yr
             Fourvar=False, user_func_name="ref_ali2d", random_method = "", log = None, \
             number_of_proc = 1, myid = 0, main_node = 0, mpi_comm = None, write_headers = False):
 
-    from sp_utilities    import model_circle, model_blank, drop_image, get_image, get_input_from_string
-    from sp_utilities    import reduce_EMData_to_root, bcast_EMData_to_all, send_attr_dict, file_type
-    from sp_utilities    import bcast_number_to_all, bcast_list_to_all
-    from sp_statistics   import fsc_mask, sum_oe, hist_list, varf2d_MPI
-    from sp_alignment    import Numrinit, ringwe, ali2d_single_iter
-    from sp_pixel_error  import pixel_error_2D
+    from sphire.libpy.sp_utilities    import model_circle, model_blank, drop_image, get_image, get_input_from_string
+    from sphire.libpy.sp_utilities    import reduce_EMData_to_root, bcast_EMData_to_all, send_attr_dict, file_type
+    from sphire.libpy.sp_utilities    import bcast_number_to_all, bcast_list_to_all
+    from sphire.libpy.sp_statistics   import fsc_mask, sum_oe, hist_list, varf2d_MPI
+    from sphire.libpy.sp_alignment    import Numrinit, ringwe, ali2d_single_iter
+    from sphire.libpy.sp_pixel_error  import pixel_error_2D
     from numpy        import reshape, shape
-    from sp_fundamentals import fshift, fft, rot_avg_table
-    from sp_utilities    import get_params2D, set_params2D
-    from sp_utilities    import wrap_mpi_gatherv
+    from sphire.libpy.sp_fundamentals import fshift, fft, rot_avg_table
+    from sphire.libpy.sp_utilities    import get_params2D, set_params2D
+    from sphire.libpy.sp_utilities    import wrap_mpi_gatherv
     import os
     import sys
-    from sp_applications   import MPI_start_end
+    from sphire.libpy.sp_applications   import MPI_start_end
     from mpi       import mpi_init, mpi_comm_size, mpi_comm_rank, MPI_COMM_WORLD
     from mpi       import mpi_reduce, mpi_bcast, mpi_barrier, mpi_gatherv
     from mpi       import MPI_SUM, MPI_FLOAT, MPI_INT
     import time
 
     if log == None:
-        from sp_logger import Logger
+        from sphire.libpy.sp_logger import Logger
         log = Logger()
 
     if mpi_comm == None:
@@ -545,7 +545,7 @@ def ali2d_base(stack, outdir, maskfile=None, ir=1, ou=-1, rs=1, xr="4 2 1 1", yr
     # ftp = file_type(stack)
 
     if myid == main_node:
-        import sp_global_def
+        import sphire.libpy.sp_global_def as sp_global_def
         sp_global_def.LOGFILE =  os.path.join(outdir, sp_global_def.LOGFILE)
         log.add("Start  ali2d_MPI")
 
@@ -627,7 +627,7 @@ def ali2d_base(stack, outdir, maskfile=None, ir=1, ou=-1, rs=1, xr="4 2 1 1", yr
         else:
             log.add("Stop iteration with         : maxit")
 
-        import sp_user_functions
+        import sphire.libpy.sp_user_functions as sp_user_functions
         user_func = sp_user_functions.factory[user_func_name]
 
         log.add("User function               : %s"%(user_func_name))
